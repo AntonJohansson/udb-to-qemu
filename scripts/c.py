@@ -163,54 +163,6 @@ class CPrinter:
         self.bytes += struct.pack('<Q', enc)[0:num_bytes]
 
 
-def output_elf(f, text_bytes):
-    # ELF Header
-    f.write(b'\x7fELF' + b'\x01'*3 + b'\x00' * 9)  # ELF Header
-    f.write(struct.pack('<H', 2))                  # ET_EXEC (Executable)
-    # EM_* (riscv32 architecture)
-    f.write(struct.pack('<H', 243))
-    f.write(struct.pack('<I', 1))                  # Version
-    # Entry point (dummy address)
-    f.write(struct.pack('<I', 0x10000+52+2*32))
-    f.write(struct.pack('<I', 52))                 # Program header offset
-    f.write(struct.pack('<I', 0))                  # Section header offset
-    f.write(struct.pack('<I', 0))                  # Flags
-    f.write(struct.pack('<H', 52))                 # ELF Header size
-    f.write(struct.pack('<H', 32))                 # Program header entry size
-    f.write(struct.pack('<H', 2))                  # Number of program headers
-    f.write(struct.pack('<H', 0))                  # No. section headers
-    f.write(struct.pack('<H', 0))                  # No. section headers
-    # No. section header string table
-    f.write(struct.pack('<H', 0))
-
-    # Program Header (.text)
-    f.write(struct.pack('<I', 1))                  # PT_LOAD
-    f.write(struct.pack('<I', 0))                  # Offset in the file
-    f.write(struct.pack('<I', 0x1000))             # Virtual address
-    f.write(struct.pack('<I', 0x1000))             # Physical address
-    # Size of the segment in the file
-    f.write(struct.pack('<I', 0))
-    # Size of the segment in memory
-    f.write(struct.pack('<I', 0x1000))
-    f.write(struct.pack('<I', 6))                  # R (read) and E (execute)
-    f.write(struct.pack('<I', 0x1000))             # Alignment
-
-    # Program Header (.test_data)
-    f.write(struct.pack('<I', 1))                  # PT_LOAD
-    f.write(struct.pack('<I', 0))                  # Offset in the file
-    f.write(struct.pack('<I', 0x10000))            # Virtual address
-    f.write(struct.pack('<I', 0x10000))            # Physical address
-    # Size of the segment in the file
-    f.write(struct.pack('<I', len(text_bytes)))
-    # Size of the segment in memory
-    f.write(struct.pack('<I', len(text_bytes)))
-    f.write(struct.pack('<I', 5))                  # R (read) and E (execute)
-    f.write(struct.pack('<I', 0x1000))             # Alignment
-
-    # Text section
-    f.write(text_bytes)
-
-
 def test_has_variables(test):
     return isinstance(test['variables'], list)
 
@@ -376,69 +328,6 @@ def main():
         printer.line('exit(0);')
         printer.set_indent(0)
         printer.line('}')
-
-    # for test_index,test in enumerate(io_yaml):
-    #    printer.bytes = bytes()
-
-    #    expected_result = None
-
-    #    if 'has_jump' in test:
-    #        if test['has_jump']['valid_test_jump'] == 0:
-    #            continue
-
-    #    if 'has_valid_test_memop' in test and test['has_valid_test_memop'] == 0:
-    #        continue
-
-    #    if 'has_load' in test:
-    #        for loadop in test['has_load']:
-    #            printer.li(loadop['address'], address_reg)
-    #            printer.li(loadop['value'], dst_reg)
-    #            printer.append('sw', 0, address_reg, dst_reg)
-
-    #    inst_args = []
-    #    if test_has_variables(test):
-    #        for i, v in enumerate(test['variables']):
-    #            if not 'in' in v:
-    #                continue
-
-    #            if common.var_is_imm(y['operation()'], v['name']):
-    #                inst_args.append(v['in'])
-    #            else:
-    #                reg = dst_reg + 1 + i
-    #                if 'out' in v:
-    #                    reg = dst_reg
-    #                    expected_result = v['out']
-
-    #                if 'in' in v:
-    #                    printer.li(v['in'], reg)
-
-    #                if is_compressed:
-    #                    reg -= 8
-    #                inst_args.append(reg)
-
-    #    printer.append(args.inst_name, *inst_args)
-
-    #    if 'has_jump' in test:
-    #        if expected_result != None:
-    #            printer.check_branch_and_result(expected_result)
-    #        else:
-    #            printer.check_branch()
-    #    else:
-    #        if expected_result != None:
-    #            printer.check_result(expected_result)
-
-    #    if 'has_store' in test:
-    #        for storeop in test['has_store']:
-    #            printer.li(storeop['address'], address_reg)
-    #            printer.append('lw', 0, dst_reg, address_reg)
-    #            printer.check_result(storeop['value'])
-
-    #    printer.exit_success()
-    #
-    #    #printer.li(69, 6)
-    #    #printer.li(0x1234, 7)
-    #    #printer.append('sw', 0, 7, 6)
-    #    #printer.append('lw', 0, 5, 7)
 
 
 if __name__ == '__main__':
