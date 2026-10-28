@@ -25,6 +25,8 @@ xqci_csr_dir=${rudb_dir}/spec/custom/isa/qc_iu/csr/Xqci
 
 xqccmp_inst_dir=${rudb_dir}/spec/custom/isa/qc_iu/inst/Xqccmp
 
+xqccmt_inst_dir=${rudb_dir}/spec/custom/isa/qc_iu/inst/Xqccmt
+
 smrnmi_csr_dir=${rudb_dir}/spec/std/isa/csr/Smrnmi
 base_csr_dir=${rudb_dir}/spec/std/isa/csr
 
@@ -49,6 +51,12 @@ echo "  - helper-to-tcg cpp input for Xqccmp"
     --inst-dir ${xqccmp_inst_dir} \
     -o build/xqccmp.cpp 
 
+#echo "  - helper-to-tcg cpp input for Xqccmt"
+#./scripts/udb-to-cpp.py \
+#    --csrs "${base_csr_dir}" \
+#    --inst-dir ${xqccmt_inst_dir} \
+#    -o build/xqccmt.cpp 
+
 echo "Building CSR fields for Xqci"
 ./scripts/udb-to-csr.py \
     --inst-dir=${xqci_inst_dir} \
@@ -61,6 +69,8 @@ echo "Compiling helper-to-tcg input -> .ll for Xqci"
 $clangpp build/xqci.cpp -emit-llvm -std=c++20 -c -O3 -I cpp-templates -I include -o build/xqci.ll
 echo "Compiling helper-to-tcg input -> .ll for Xqccmp"
 $clangpp build/xqccmp.cpp -emit-llvm -std=c++20 -c -O3 -I cpp-templates -I include -o build/xqccmp.ll
+#echo "Compiling helper-to-tcg input -> .ll for Xqccmt"
+#$clangpp build/xqccmt.cpp -emit-llvm -std=c++20 -c -O3 -I cpp-templates -I include -o build/xqccmt.ll
 
 echo "Running helper-to-tcg for Xqci"
 ./build/helper-to-tcg build/xqci.ll \
@@ -89,6 +99,23 @@ echo "Running helper-to-tcg for Xqccmp"
     --temp-vector-block=_vector \
     --static-output \
     &> build/helper-to-tcg-out-xqccmp
+
+echo "Running helper-to-tcg for Xqccmt"
+#./build/helper-to-tcg build/xqccmt.ll \
+#    --forward-context \
+#    --allow-decl-call \
+#    --output-source build/xqccmt-tcg.c \
+#    --output-header build/xqccmt-tcg.h \
+#    --output-enabled build/xqccmt-tcg-enabled \
+#    --output-log build/xqcccmt-tcg-log \
+#    --tcg-global-mappings=tcg_global_mappings \
+#    --mmu-index-function=_mmu \
+#    --temp-vector-block=_vector \
+#    --static-output \
+#    &> build/helper-to-tcg-out-xqccmt
+
+#exit
+
 
 echo "Generating KLEE input:"
 ./scripts/udb-to-klee.py \
