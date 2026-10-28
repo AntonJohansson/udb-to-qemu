@@ -35,62 +35,72 @@ static std::unordered_map<uint32_t, MemoryOp> rmemory;
 static const uint32_t read_pattern = 0x12345678;
 static uint32_t number_of_reads = 0;
 
-#define read_memory_xlen read_memory<32>
-#define write_memory_xlen write_memory<32>
+#define read_memory_xlen(va, enc) read_memory(32, va, enc)
+#define write_memory_xlen(va, value, enc) write_memory(32, va, value, enc)
 
-template <int N> void write_memory(XReg va, XReg value, uint32_t encoding = 0);
-template <> void write_memory<8>(XReg va, XReg value, uint32_t encoding) {
-    has_store = true;
-    if (va.value() >= 0x1000 && va.value() <= 0x2ff8 && value.value() != 0) {
-        has_valid_test_memop = true;
-        wmemory[va.value()] = {value.value() & 0xff, 8};
-    }
-}
-template <> void write_memory<16>(XReg va, XReg value, uint32_t encoding) {
-    has_store = true;
-    if (va.value() >= 0x1000 && va.value() <= 0x2ff8 && value.value() != 0) {
-        has_valid_test_memop = true;
-        wmemory[va.value()] = {value.value() & 0xffff, 16};
-    }
-}
-template <> void write_memory<32>(XReg va, XReg value, uint32_t encoding) {
-    has_store = true;
-    if (va.value() >= 0x1000 && va.value() <= 0x2ff8 && value.value() != 0) {
-        has_valid_test_memop = true;
-        wmemory[va.value()] = {value.value() & 0xffffffff, 32};
+void write_memory(size_t size, XReg va, XReg value, uint32_t encoding) {
+    switch (size) {
+    case 8: {
+        has_store = true;
+        if (va.value() >= 0x1000 && va.value() <= 0x2ff8 && value.value() != 0) {
+            has_valid_test_memop = true;
+            wmemory[va.value()] = {value.value() & 0xff, 8};
+        }
+    } break;
+    case 16: {
+        has_store = true;
+        if (va.value() >= 0x1000 && va.value() <= 0x2ff8 && value.value() != 0) {
+            has_valid_test_memop = true;
+            wmemory[va.value()] = {value.value() & 0xffff, 16};
+        }
+    } break;
+    case 32: {
+        has_store = true;
+        if (va.value() >= 0x1000 && va.value() <= 0x2ff8 && value.value() != 0) {
+            has_valid_test_memop = true;
+            wmemory[va.value()] = {value.value() & 0xffffffff, 32};
+        }
+    } break;
+    default:
+        assert(false);
     }
 }
 
-template <int N> XReg read_memory(XReg va, uint32_t encoding = 0);
-template <> XReg read_memory<8>(XReg va, uint32_t encoding) {
-    has_load = true;
-    ++number_of_reads;
-    uint32_t value = number_of_reads * read_pattern;
-    if (va.value() >= 0x1000 && va.value() <= 0x2ff8) {
-        has_valid_test_memop = true;
-        rmemory[va.value()] = {value & 0xff, 8};
+XReg read_memory(size_t size, XReg va, uint32_t encoding) {
+    switch (size) {
+    case 8: {
+        has_load = true;
+        ++number_of_reads;
+        uint32_t value = number_of_reads * read_pattern;
+        if (va.value() >= 0x1000 && va.value() <= 0x2ff8) {
+            has_valid_test_memop = true;
+            rmemory[va.value()] = {value & 0xff, 8};
+        }
+        return rmemory[va.value()].value;
+    } break;
+    case 16: {
+        has_load = true;
+        ++number_of_reads;
+        uint32_t value = number_of_reads * read_pattern;
+        if (va.value() >= 0x1000 && va.value() <= 0x2ff8) {
+            has_valid_test_memop = true;
+            rmemory[va.value()] = {value & 0xffff, 16};
+        }
+        return rmemory[va.value()].value;
+    } break;
+    case 32: {
+        has_load = true;
+        ++number_of_reads;
+        uint32_t value = number_of_reads * read_pattern;
+        if (va.value() >= 0x1000 && va.value() <= 0x2ff8) {
+            has_valid_test_memop = true;
+            rmemory[va.value()] = {value & 0xffffffff, 32};
+        }
+        return rmemory[va.value()].value;
+    } break;
+    default:
+        assert(false);
     }
-    return rmemory[va.value()].value;
-}
-template <> XReg read_memory<16>(XReg va, uint32_t encoding) {
-    has_load = true;
-    ++number_of_reads;
-    uint32_t value = number_of_reads * read_pattern;
-    if (va.value() >= 0x1000 && va.value() <= 0x2ff8) {
-        has_valid_test_memop = true;
-        rmemory[va.value()] = {value & 0xffff, 16};
-    }
-    return rmemory[va.value()].value;
-}
-template <> XReg read_memory<32>(XReg va, uint32_t encoding) {
-    has_load = true;
-    ++number_of_reads;
-    uint32_t value = number_of_reads * read_pattern;
-    if (va.value() >= 0x1000 && va.value() <= 0x2ff8) {
-        has_valid_test_memop = true;
-        rmemory[va.value()] = {value & 0xffffffff, 32};
-    }
-    return rmemory[va.value()].value;
 }
 
 uint64_t xqci_current_pc() { return 0; }
@@ -135,11 +145,70 @@ XReg get_and_validate_stack_pointer(XReg a, int32_t i) { return a; }
 void xqci_set_mode_M() {}
 void xqci_set_mode_S() {}
 void xqci_set_mode_U() {}
+
+bool xqci_implemented_B() {return true;}
+bool xqci_implemented_C() {return true;}
+bool xqci_implemented_D() {return true;}
+bool xqci_implemented_F() {return true;}
+bool xqci_implemented_H() {return true;}
+bool xqci_implemented_I() {return true;}
+bool xqci_implemented_M() {return true;}
+bool xqci_implemented_Q() {return true;}
+bool xqci_implemented_S() {return true;}
+bool xqci_implemented_Sdext() {return true;}
+bool xqci_implemented_Smdbltrp() {return true;}
+bool xqci_implemented_Smrnmi() {return true;}
+bool xqci_implemented_Svinval() {return true;}
+bool xqci_implemented_V() {return true;}
+bool xqci_implemented_Zaamo() {return true;}
+bool xqci_implemented_Zabha() {return true;}
+bool xqci_implemented_Zacas() {return true;}
+bool xqci_implemented_Zalasr() {return true;}
+bool xqci_implemented_Zalrsc() {return true;}
+bool xqci_implemented_Zawrs() {return true;}
+bool xqci_implemented_Zba() {return true;}
+bool xqci_implemented_Zbb() {return true;}
+bool xqci_implemented_Zbc() {return true;}
+bool xqci_implemented_Zbkb() {return true;}
+bool xqci_implemented_Zbkx() {return true;}
+bool xqci_implemented_Zbs() {return true;}
+bool xqci_implemented_Zcb() {return true;}
+bool xqci_implemented_Zcd() {return true;}
+bool xqci_implemented_Zcf() {return true;}
+bool xqci_implemented_Zcmop() {return true;}
+bool xqci_implemented_Zcmp() {return true;}
+bool xqci_implemented_Zcmt() {return true;}
+bool xqci_implemented_Zfa() {return true;}
+bool xqci_implemented_Zfbfmin() {return true;}
+bool xqci_implemented_Zfh() {return true;}
+bool xqci_implemented_Zicbom() {return true;}
+bool xqci_implemented_Zicbop() {return true;}
+bool xqci_implemented_Zicboz() {return true;}
+bool xqci_implemented_Zicfilp() {return true;}
+bool xqci_implemented_Zicfiss() {return true;}
+bool xqci_implemented_Zicond() {return true;}
+bool xqci_implemented_Zicsr() {return true;}
+bool xqci_implemented_Zifencei() {return true;}
+bool xqci_implemented_Zihintntl() {return true;}
+bool xqci_implemented_Zihintpause() {return true;}
+bool xqci_implemented_Zimop() {return true;}
+bool xqci_implemented_Zkn() {return true;}
+bool xqci_implemented_Zknd() {return true;}
+bool xqci_implemented_Zkne() {return true;}
+bool xqci_implemented_Zknh() {return true;}
+bool xqci_implemented_Zks() {return true;}
+bool xqci_implemented_Zvbb() {return true;}
+bool xqci_implemented_Zvbc() {return true;}
+bool xqci_implemented_Zvfbfmin() {return true;}
+bool xqci_implemented_Zvfbfwma() {return true;}
+bool xqci_implemented_Zvkg() {return true;}
+bool xqci_implemented_Zvkned() {return true;}
+bool xqci_implemented_Zvknha() {return true;}
+bool xqci_implemented_Zvks() {return true;}
 bool xqci_implemented_U() { return true; }
+
 bool xqci_implemented_Xqccmp() { return true; }
-bool xqci_implemented_Zcmp() { return true; }
 /* Implemented in a default rv32 QEMU machine */
-bool xqci_implemented_Smdbltrp() { return true; }
 void xqci_syscall(int a, int b) {}
 
 static void iss_syscall(XReg a, XReg b) { xqci_syscall(a.value(), b.value()); }

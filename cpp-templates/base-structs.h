@@ -67,6 +67,7 @@ template <uint32_t N, bool S = false> class __attribute__((packed)) Bits {
     static constexpr type signed_min = unsigned_max ^ signed_max;
     static constexpr type max = (S) ? signed_max : unsigned_max;
     static constexpr type min = (S) ? signed_min : unsigned_min;
+    static constexpr type size = N;
 
   private:
     type larger_value;

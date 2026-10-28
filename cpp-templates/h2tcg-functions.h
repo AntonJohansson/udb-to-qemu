@@ -28,29 +28,25 @@ void cpu_stw_le_data(CPUArchState *env, abi_ptr ptr, uint32_t val);
 void cpu_stl_le_data(CPUArchState *env, abi_ptr ptr, uint32_t val);
 void cpu_stq_le_data(CPUArchState *env, abi_ptr ptr, uint64_t val);
 
-#define read_memory_xlen read_memory<32>
-#define write_memory_xlen write_memory<32>
+#define read_memory_xlen(va, enc) read_memory(32, va, enc)
+#define write_memory_xlen(va, reg, enc) write_memory(32, va, reg, enc)
 
-template <int N> void write_memory(XReg va, XReg value, uint32_t encoding = 0);
-template <> void write_memory<8>(XReg va, XReg value, uint32_t encoding) {
-    cpu_stb_data(NULL, va.value(), value.value());
-}
-template <> void write_memory<16>(XReg va, XReg value, uint32_t encoding) {
-    cpu_stw_le_data(NULL, va.value(), value.value());
-}
-template <> void write_memory<32>(XReg va, XReg value, uint32_t encoding) {
-    cpu_stl_le_data(NULL, va.value(), value.value());
+inline void write_memory(size_t size, XReg va, XReg value, uint32_t encoding) {
+    switch (size) {
+        case 8: return cpu_stb_data(NULL, va.value(), value.value());
+        case 16: return cpu_stw_le_data(NULL, va.value(), value.value());
+        case 32: return cpu_stl_le_data(NULL, va.value(), value.value());
+        default: assert(false);
+    }
 }
 
-template <int N> XReg read_memory(XReg va, uint32_t encoding = 0);
-template <> XReg read_memory<8>(XReg va, uint32_t encoding) {
-    return cpu_ldub_data(NULL, va.value());
-}
-template <> XReg read_memory<16>(XReg va, uint32_t encoding) {
-    return cpu_lduw_le_data(NULL, va.value());
-}
-template <> XReg read_memory<32>(XReg va, uint32_t encoding) {
-    return cpu_ldl_le_data(NULL, va.value());
+inline XReg read_memory(size_t size, XReg va, uint32_t encoding) {
+    switch (size) {
+        case 8: return cpu_ldub_data(NULL, va.value());
+        case 16: return cpu_lduw_le_data(NULL, va.value());
+        case 32: return cpu_ldl_le_data(NULL, va.value());
+        default: assert(false);
+    }
 }
 
 void xqci_raise_IllegalInstruction();
