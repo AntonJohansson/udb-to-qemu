@@ -78,22 +78,9 @@ def main():
             out.write('    return false;\n')
             out.write('#else\n')
 
-            extensions = []
-            extensions_yaml = []
-            if 'anyOf' in y['definedBy']:
-                for e in y['definedBy']['anyOf']:
-                    extensions_yaml.append(e)
-            else:
-                extensions_yaml.append(y['definedBy'])
-            for e in extensions_yaml:
-                if 'name' in e:
-                    extensions.append(e['name'])
-                else:
-                    extensions.append(e)
-            assert (len(extensions) > 0)
+            extensions = common.format_extension_check('!ctx->cfg_ptr->ext_{}', y['definedBy'])
             print(f'{file} {extensions}')
-            out.write(f'    if ({' && '.join(
-                [f"!ctx->cfg_ptr->ext_{e.lower()}" for e in extensions])}) {{\n')
+            out.write(f'    if ({extensions}) {{\n')
             out.write(f'        return false;\n')
             out.write(f'    }}\n')
 
@@ -135,22 +122,9 @@ def main():
                       op_name}(rv_decode *dec, arg_{op_name} *arg)\n')
             out.write('{\n')
 
-            extensions = []
-            extensions_yaml = []
-            if 'anyOf' in y['definedBy']:
-                for e in y['definedBy']['anyOf']:
-                    extensions_yaml.append(e)
-            else:
-                extensions_yaml.append(y['definedBy'])
-            for e in extensions_yaml:
-                if 'name' in e:
-                    extensions.append(e['name'])
-                else:
-                    extensions.append(e)
-            assert (len(extensions) > 0)
-            print(f'{file} {extensions}')
-            out.write(f'    if ({' && '.join(
-                [f"!dec->cfg->ext_{e.lower()}" for e in extensions])}) {{\n')
+
+            extensions = common.format_extension_check('!dec->cfg->ext_{}', y['definedBy'])
+            out.write(f'    if ({extensions}) {{\n')
             out.write(f'        return false;\n')
             out.write(f'    }}\n')
 

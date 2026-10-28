@@ -120,22 +120,31 @@ def load_yaml_or_exit(path):
             exit(1)
 
 
-def get_anyof_extensions_from_yaml(y):
-    extensions = []
-    if 'anyOf' in y['definedBy']:
-        for e in y['definedBy']['anyOf']:
-            extensions.append(e)
+def format_extension_check(fmt, y, op=''):
+    print(y)
+    if 'allOf' in y:
+        for e in y['allOf']:
+            if 'extension' in e:
+                return format_extension_check(fmt, e['extension'], ' || ')
+    elif 'anyOf' in y:
+        for e in y['anyOf']:
+            if 'extension' in e:
+                return format_extension_check(fmt, e['extension'], ' && ')
     else:
-        extensions.append(y['definedBy'])
-
-    extension_names = []
-    for e in extensions:
-        if 'name' in e:
-            extension_names.append(e['name'])
+        extension_names = []
+        if 'extension' in y:
+            y = y['extension']
+        print(y)
+        if isinstance(y, dict):
+            extension_names.append(y['name'])
         else:
-            extension_names.append(e)
-
-    return extension_names
+            for e in y:
+                print(e)
+                if 'name' in e:
+                    extension_names.append(e['name'])
+                else:
+                    extension_names.append(e)
+        return op.join([fmt.format(n.lower()) for n in extension_names])
 
 
 ################################################################################
@@ -199,6 +208,9 @@ def op_to_cpp(op, csrs, for_klee=False):
 
     # op = re.sub(r'\(1 << ([a-zA-Z0-9]+)\)', r'(1ul << \1.value())', op)
 
+    op = re.sub(r'\'s([0-9]+)', r'\1', op)
+    op = re.sub(r'MXLEN\'([0-9]+)', r'((int32_t)\1)', op)
+
     op = re.sub(r'Bits<{1\'b0, XLEN}\*2> pair = {X\[rs1 \+ 1\], X\[rs1\]};',
                 r'uint64_t pair = ((uint64_t) X[rs1+1].value() << 32) | ((uint64_t) X[rs1].value());', op)
     op = re.sub(r'Bits<{1\'b0, MXLEN}\*2> pair = {X\[rs1 \+ 1\], X\[rs1\]};',
@@ -208,6 +220,7 @@ def op_to_cpp(op, csrs, for_klee=False):
 
     op = re.sub(r"([A-Za-z0-9]+)'b([0-9]+)", r'Bits<\1>(0b\2)', op)
     op = re.sub(r"([A-Za-z0-9]+)'h([0-9A-Fa-f]+)", r'Bits<\1>(0x\2)', op)
+    op = re.sub(r'{Bits<1>\(0b0\), ([a-zA-Z0-9]+)}', r'Bits<decltype(\1)::size+1>(\1)', op)
 
     op = re.sub(
         r'\[([A-Za-z0-9\(\)\+\-\*/ ]+):([A-Za-z0-9\(\)\+\-\*/ ]+)\]', r'.range<\2,\1>()', op)
@@ -246,6 +259,7 @@ def op_to_cpp(op, csrs, for_klee=False):
     op = re.sub(r'CSR\[([a-zA-z0-9 \+\*\/]+)\]', sub_to_csr_read, op)
 
     op = re.sub(r'Bits<xlen\(\)`\*2>', 'Bits<xlen()*2>', op)
+    op = re.sub(r'Bits<MXLEN`\*2>', 'Bits<MXLEN*2>', op)
     op = re.sub(r'(.*) = (.*) `\+ (.*);', r'\1 = wide_add(\2, \3);', op)
     op = re.sub(r'(.*) = (.*) `\- (.*);', r'\1 = wide_sub(\2, \3);', op)
     op = re.sub(r'\(([A-Za-z0-9_ ]+)`<<([A-Za-z0-9_ ]+)\)',

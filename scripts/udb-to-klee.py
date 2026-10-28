@@ -125,8 +125,9 @@ def main():
     csrs = get_csrs(args.csrs)
 
     translated = ''
-    with open(args.helper_to_tcg_translated, 'r') as f:
-        translated = f.read()
+    if args.helper_to_tcg_translated:
+        with open(args.helper_to_tcg_translated, 'r') as f:
+            translated = f.read()
 
     for file in sorted(os.listdir(args.inst_dir)):
         if not should_translate(file):
@@ -144,6 +145,8 @@ def main():
             name = y['name']
             op_name = re.sub(r'\.', r'_', name)
             if len(translated) > 0 and not op_name in translated:
+                continue
+            if len(y['operation()']) == 0:
                 continue
 
             with open(klee_file, 'w') as out:
@@ -169,7 +172,7 @@ def main():
                         var_names.append(v['name'])
                 out.write('\n')
 
-                out.write(f"void {re.sub(r'\.', r'_', name)
+                out.write(f"void op_{re.sub(r'\.', r'_', name)
                                   }({', '.join(vars)}) {{\n")
                 op = y['operation()']
                 op = common.op_to_cpp(op, csrs, True)
@@ -210,7 +213,7 @@ def main():
                         print_info[name] = ('imm', 0, False)
                         call_args.append(name)
 
-                    elif 'rd' not in name:
+                    elif 'rd' not in name and 'xd' not in name and 'fd' not in name:
                         out.write(f'uint{cs}_t {name};\n')
                         out.write(
                             f'klee_make_symbolic(&{name}, sizeof({name}), "{name}");\n')
@@ -248,7 +251,7 @@ def main():
                         out.write(
                             f'klee_assume({name} <= ((1ul << {var_size})-1));\n')
 
-                out.write(f"cpu.{op_name}({', '.join(call_args)}")
+                out.write(f"cpu.op_{op_name}({', '.join(call_args)}")
                 out.write(');\n')
 
                 out.write('printf("- variables:\\n");\n')
@@ -269,6 +272,31 @@ def main():
 
                 out.write('printf("  overflow: %u\\n", overflow);\n')
                 out.write('printf("  underflow: %u\\n", underflow);\n')
+
+
+                out.write('if (has_jump && overflow) {\n')
+                out.write('    printf("  has_jump_overflow:\\n");\n')
+                out.write('}\n')
+                out.write('if (has_jump && underflow) {\n')
+                out.write('    printf("  has_jump_underflow:\\n");\n')
+                out.write('}\n')
+                out.write('if (has_load && overflow) {\n')
+                out.write('    printf("  has_load_overflow:\\n");\n')
+                out.write('}\n')
+                out.write('if (has_load && underflow) {\n')
+                out.write('    printf("  has_load_underflow:\\n");\n')
+                out.write('}\n')
+                out.write('if (has_store && overflow) {\n')
+                out.write('    printf("  has_store_overflow:\\n");\n')
+                out.write('}\n')
+                out.write('if (has_store && underflow) {\n')
+                out.write('    printf("  has_store_underflow:\\n");\n')
+                out.write('}\n')
+                out.write('if (overflow && underflow) {\n')
+                out.write('    printf("  has_overflow_underflow:\\n");\n')
+                out.write('}\n')
+
+
                 out.write('if (has_jump) {\n')
                 out.write('    printf("  has_jump:\\n");\n')
                 out.write(

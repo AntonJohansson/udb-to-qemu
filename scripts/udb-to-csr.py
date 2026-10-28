@@ -65,9 +65,7 @@ def main():
             out.write('}\n')
 
             # Output predicate function
-            exts = common.get_anyof_extensions_from_yaml(csrs[csr])
-            exts_cond = ' && '.join(
-                [f"!riscv_cpu_cfg(env)->ext_{e.lower()}" for e in exts])
+            exts_cond = common.format_extension_check("!riscv_cpu_cfg(env)->ext_{}", csrs[csr]['definedBy'])
             out.write(f'static RISCVException pred_{
                       csr_name}(CPURISCVState * env,\n')
             out.write('                               int csrno)\n')
