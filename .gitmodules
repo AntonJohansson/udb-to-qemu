@@ -5,11 +5,11 @@
 [submodule "submodules/helper-to-tcg"]
 	path = submodules/helper-to-tcg
 	url = https://github.com/revng/qemu-upstream
-	branch = feature/helper-to-tcg-develop
+	branch = feature/helper-to-tcg-v3
 [submodule "submodules/xqci"]
 	path = submodules/xqci
 	url = https://github.com/revng/qemu-upstream
-	branch = feature/xqci-v1.1
+	branch = feature/xqci-v1.2
 [submodule "submodules/embench"]
 	path = submodules/embench
 	url = https://github.com/embench/embench-iot
